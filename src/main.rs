@@ -2,7 +2,8 @@ use postgres::{ Client, NoTls };
 use postgres::Error as PostgresError;
 use std::net::{ TcpListener, TcpStream };
 use std::io::{ Read, Write };
-use std::env;
+// use std::env;
+// use chrono::NaiveDate;
 
 #[macro_use]
 extern crate serde_derive;
@@ -15,8 +16,18 @@ struct User {
     email: String,
 }
 
+//Model: Votation struct with id, title, description, end_date
+#[derive(Serialize, Deserialize)]
+struct Votation {
+    id: Option<i32>,
+    title: String,
+    description: String,
+    end_date: i64
+}
+
 //DATABASE_URL
-const DB_URL: &str = env!("DATABASE_URL");
+// const DB_URL: &str = env!("DATABASE_URL");
+const DB_URL: &str = "postgres://postgres:postgres@db:5432/postgres";
 
 //constants
 const OK_RESPONSE: &str = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n";
@@ -63,6 +74,7 @@ fn handle_client(mut stream: TcpStream) {
                 r if r.starts_with("GET /users") => handle_get_all_request(r),
                 r if r.starts_with("PUT /users/") => handle_put_request(r),
                 r if r.starts_with("DELETE /users/") => handle_delete_request(r),
+                r if r.starts_with("POST /votation") => handle_post_votation(r),
                 _ => (NOT_FOUND.to_string(), "404 Not Found".to_string()),
             };
 
@@ -198,3 +210,19 @@ fn get_id(request: &str) -> &str {
 fn get_user_request_body(request: &str) -> Result<User, serde_json::Error> {
     serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
 }
+
+fn get_votation_request_body(request: &str) -> Result<Votation, serde_json::Error> {
+    serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
+}
+
+fn handle_post_votation(request:&str) -> (String, String) {
+
+    match get_votation_request_body(&request) {
+        Ok(votation) => {
+            ("Blockchain created".to_string(), "Votation created".to_string())
+        }
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
+    }
+    
+
+} 
