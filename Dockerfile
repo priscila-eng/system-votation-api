@@ -1,5 +1,5 @@
-# Build stage
-FROM rust:1.69-buster as builder
+# Build and Run stage
+FROM rust:1.79-buster
 
 WORKDIR /app
 
@@ -8,15 +8,11 @@ ARG DATABASE_URL
 
 ENV DATABASE_URL=$DATABASE_URL
 
-COPY . . 
+# Copy the source code
+COPY . .
 
-RUN cargo build --release
+# Install cargo-watch for hot reloading
+RUN cargo install cargo-watch
 
-# Production stage
-FROM debian:buster-slim
-
-WORKDIR /usr/local/bin
-
-COPY --from=builder /app/target/release/rust-crud-api .
-
-CMD ["./rust-crud-api"]
+# Command to run the application with hot reload
+CMD ["cargo", "watch", "-x", "run"]

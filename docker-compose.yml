@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - '4000:4000'
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,6 @@ services:
 
   rustapp:
     container_name: rustapp
-    image: LP-ladeira/rustapp:1.0.0
     build:
       context: .
       dockerfile: Dockerfile
@@ -30,6 +29,8 @@ services:
       - '8080:8080'
     depends_on:
       - db
+    volumes:
+      - .:/app  # Mount the current directory to /app inside the container
 
 volumes:
-  pgdata: {}
+  pgdata:
