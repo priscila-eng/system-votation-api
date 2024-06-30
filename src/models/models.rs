@@ -36,3 +36,9 @@ pub struct LoginData {
     pub email: String,
     pub password: String,
 }
+
+//Model: SignupData struct with name, email, password
+#[derive(Serialize, Deserialize)]
+pub struct AuthData {
+    pub token: String,
+}

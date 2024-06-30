@@ -20,9 +20,10 @@ pub fn handle_client(mut stream: TcpStream) {
                 r if r.starts_with("GET /users") => handle_get_all_request(r),
                 r if r.starts_with("PUT /users/") => handle_put_request(r),
                 r if r.starts_with("DELETE /users/") => handle_delete_request(r),
-                r if r.starts_with("POST /votation") => handle_post_votation(r),
-                r if r.starts_with("POST /signup") => handle_post_signup(r),
-                r if r.starts_with("POST /login") => handle_login_request(r),
+                r if r.starts_with("POST /votation") => handle_post_votation(r), // create a votation
+                r if r.starts_with("POST /signup") => handle_post_signup(r), // register an user
+                r if r.starts_with("POST /login") => handle_login_request(r), // do the login
+                r if r.starts_with("POST /token") => handle_auth_request(r), // checks if a token is valid
                 _ => (NOT_FOUND.to_string(), "404 Not Found".to_string()),
             };
 

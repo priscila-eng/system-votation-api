@@ -194,3 +194,33 @@ pub fn handle_login_request(request: &str) -> (String, String) {
         _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
     }
 }
+
+pub fn handle_auth_request(request: &str) -> (String, String) {
+    match (get_request_body::<AuthData>(&request), Client::connect(DB_URL, NoTls)) {
+        (Ok(auth_data), Ok(mut client)) => {
+            match client.query_one(
+                "SELECT user_id FROM sessions WHERE token = $1",
+                &[&auth_data.token],
+            ) {
+                Ok(row) => {
+                    let user_id: i32 = row.get(0);
+                    match client.query_one(
+                        "SELECT * FROM users WHERE id = $1",
+                        &[&user_id],
+                    ) {
+                        Ok(row) => {
+                            (OK_RESPONSE.to_string(), "Token valid".to_string())
+                        }
+                        _ => (NOT_FOUND.to_string(), "Invalid token".to_string()),
+                    
+                    }
+                }
+                Err(_) => {
+                    // Usuário não encontrado ou erro no banco de dados
+                    (UNAUTHORIZED.to_string(), "Invalid token".to_string())
+                }
+            }
+        }
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
+    }
+}
