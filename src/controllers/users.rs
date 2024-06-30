@@ -5,6 +5,7 @@ use crate::responses::responses::INTERNAL_SERVER_ERROR;
 use crate::responses::responses::OK_RESPONSE;
 use crate::models::models::User;
 use crate::utils::utils::*;
+use postgres::error::SqlState;
 
 const DB_URL: &str = "postgres://postgres:postgres@db:5432/postgres";
 
@@ -102,5 +103,40 @@ pub fn handle_delete_request(request: &str) -> (String, String) {
             (OK_RESPONSE.to_string(), "User deleted".to_string())
         }
         _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
+    }
+}
+
+
+fn handle_post_signup(request: &str) -> (String, String) {
+    match get_signup_request_body(request) {
+        Ok(signup_data) => {
+            match Client::connect(DB_URL, NoTls) {
+                Ok(mut client) => {
+                    let hashed_password = hash_password(&signup_data.password); // Função para hash da senha
+
+                    let result = client.execute(
+                        "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
+                        &[&signup_data.name, &signup_data.email, &hashed_password]
+                    );
+
+                    match result {
+                        Ok(_) => (OK_RESPONSE.to_string(), "New user created".to_string()),
+                        Err(err) => {
+                            if let Some(db_err) = err.as_db_error() {
+                                if db_err.code() == &SqlState::UNIQUE_VIOLATION {
+                                    (INTERNAL_SERVER_ERROR.to_string(), "Email already exists".to_string())
+                                } else {
+                                    (INTERNAL_SERVER_ERROR.to_string(), format!("Database error: {}", db_err))
+                                }
+                            } else {
+                                (INTERNAL_SERVER_ERROR.to_string(), "Unknown database error".to_string())
+                            }
+                        }
+                    }
+                }
+                _ => (INTERNAL_SERVER_ERROR.to_string(), "Error connecting to database".to_string()),
+            }
+        }
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error parsing signup data".to_string()),
     }
 }

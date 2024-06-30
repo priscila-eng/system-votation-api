@@ -62,6 +62,7 @@ fn handle_client(mut stream: TcpStream) {
                 r if r.starts_with("PUT /users/") => handle_put_request(r),
                 r if r.starts_with("DELETE /users/") => handle_delete_request(r),
                 r if r.starts_with("POST /votation") => handle_post_votation(r),
+                r if r.starts_with("POST /signup") => handle_post_signup(r),
                 _ => (NOT_FOUND.to_string(), "404 Not Found".to_string()),
             };
 
@@ -83,7 +84,8 @@ fn set_database() -> Result<(), PostgresError> {
         "CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             name VARCHAR NOT NULL,
-            email VARCHAR NOT NULL
+            email VARCHAR NOT NULL UNIQUE,
+            password VARCHAR NOT NULL
         )"
     )?;
     Ok(())

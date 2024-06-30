@@ -14,3 +14,11 @@ pub struct Votation {
     pub description: String,
     pub end_date: i64
 }
+
+//Model: SignupData struct with name, email, password
+#[derive(Serialize, Deserialize)]
+struct SignupData {
+    name: String,
+    email: String,
+    password: String, // Add password field for signup
+}

@@ -13,3 +13,15 @@ pub fn get_user_request_body(request: &str) -> Result<User, serde_json::Error> {
 pub fn get_votation_request_body(request: &str) -> Result<Votation, serde_json::Error> {
     serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
 }
+
+// Function to deserialize the signup request body
+pub fn get_signup_request_body(request: &str) -> Result<SignupData, serde_json::Error> {
+    serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
+}
+
+// Password hash function (example)
+pub fn hash_password(password: &str) -> String {
+    // Here you must implement the actual password hashing logic
+    // Simple example:
+    bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap()
+}
