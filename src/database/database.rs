@@ -18,5 +18,16 @@ pub fn set_database() -> Result<(), PostgresError> {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )"
     )?;
+
+    client.batch_execute(
+        "CREATE TABLE IF NOT EXISTS sessions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            token VARCHAR NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )"
+    )?;
+
     Ok(())
 }
