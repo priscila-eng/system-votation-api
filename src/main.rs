@@ -7,7 +7,6 @@ mod constants;
 mod routes;
 
 use std::net::TcpListener;
-use responses::responses::*;
 use database::database::set_database;
 use routes::routes::handle_client;
 // use std::env;

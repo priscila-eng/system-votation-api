@@ -22,6 +22,7 @@ pub fn handle_client(mut stream: TcpStream) {
                 r if r.starts_with("DELETE /users/") => handle_delete_request(r),
                 r if r.starts_with("POST /votation") => handle_post_votation(r),
                 r if r.starts_with("POST /signup") => handle_post_signup(r),
+                r if r.starts_with("POST /login") => handle_login_request(r),
                 _ => (NOT_FOUND.to_string(), "404 Not Found".to_string()),
             };
 

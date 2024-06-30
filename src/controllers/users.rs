@@ -1,14 +1,12 @@
 use postgres::{ Client, NoTls };
-
-use crate::models::models::SignupData;
-use crate::responses::responses::NOT_FOUND;
-use crate::responses::responses::INTERNAL_SERVER_ERROR;
-use crate::responses::responses::OK_RESPONSE;
-use crate::models::models::User;
-use crate::utils::utils::*;
-use crate::BAD_REQUEST;
 use postgres::error::SqlState;
-use crate::constants::constants::DB_URL;
+use jsonwebtoken::{encode, Header, EncodingKey}; 
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::responses::responses::*;
+use crate::models::models::*;
+use crate::utils::utils::*;
+use crate::constants::constants::{ DB_URL, SECRET_KEY };
 
 pub fn handle_post_request(request: &str) -> (String, String) {
     match (get_request_body::<User>(&request), Client::connect(DB_URL, NoTls)) {
@@ -139,5 +137,60 @@ pub fn handle_post_signup(request: &str) -> (String, String) {
             }
         }
         _ => (INTERNAL_SERVER_ERROR.to_string(), "Error parsing signup data".to_string()),
+    }
+}
+
+pub fn handle_login_request(request: &str) -> (String, String) {
+    match (get_request_body::<LoginData>(&request), Client::connect(DB_URL, NoTls)) {
+        (Ok(login_data), Ok(mut client)) => {
+            match client.query_one(
+                "SELECT id, password FROM users WHERE email = $1",
+                &[&login_data.email],
+            ) {
+                Ok(row) => {
+                    let stored_password: String = row.get(1);
+                    let user_id: i32 = row.get(0);
+                    if verify_password(&login_data.password, &stored_password) {
+                        if let Err(e) = client.execute(
+                            "DELETE FROM sessions WHERE user_id = $1",
+                            &[&user_id],
+                        ) {
+                            return (INTERNAL_SERVER_ERROR.to_string(), format!("Database error: {}", e));
+                        }
+                        
+                        // Credenciais válidas, gerar token JWT
+                        let now = SystemTime::now().duration_since(UNIX_EPOCH)
+                            .expect("Time went backwards")
+                            .as_secs() as usize;
+                        let expiration = now + 60 * 60; // 1 hora de validade
+                        let claims = Claims {
+                            sub: login_data.email.clone(),
+                            iat: now,
+                            exp: expiration,
+                        };
+                        let token = match encode(&Header::default(), &claims, &EncodingKey::from_secret(SECRET_KEY)) {
+                            Ok(t) => t,
+                            Err(_) => return (INTERNAL_SERVER_ERROR.to_string(), "Token generation error".to_string()),
+                        };
+
+                        if let Err(e) = client.execute(
+                            "INSERT INTO sessions (user_id, token) VALUES ($1, $2)",
+                            &[&user_id, &token],
+                        ) {
+                            return (INTERNAL_SERVER_ERROR.to_string(), format!("Database error: {}", e));
+                        }
+
+                        (OK_RESPONSE.to_string(), format!("{{\"token\": \"{}\"}}", token))
+                    } else {
+                        (UNAUTHORIZED.to_string(), "Invalid credentials".to_string())
+                    }
+                }
+                Err(_) => {
+                    // Usuário não encontrado ou erro no banco de dados
+                    (UNAUTHORIZED.to_string(), "Invalid credentials".to_string())
+                }
+            }
+        }
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
     }
 }
