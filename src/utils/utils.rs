@@ -1,22 +1,25 @@
-use crate::models::models::*;
+use serde::de::DeserializeOwned;
+use serde_json::Error;
+
+#[derive(Debug)]
+pub enum RequestBodyError {
+    EmptyBody,
+    DeserializationError(Error),
+}
 
 //get_id function
 pub fn get_id(request: &str) -> &str {
     request.split("/").nth(2).unwrap_or_default().split_whitespace().next().unwrap_or_default()
 }
 
-//deserialize user from request body with the id
-pub fn get_user_request_body(request: &str) -> Result<User, serde_json::Error> {
-    serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
-}
+pub fn get_request_body<T: DeserializeOwned>(request: &str) -> Result<T, RequestBodyError> {
+    let body = request.split("\r\n\r\n").last().unwrap_or_default();
 
-pub fn get_votation_request_body(request: &str) -> Result<Votation, serde_json::Error> {
-    serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
-}
+    if body.is_empty() {
+        return Err(RequestBodyError::EmptyBody);
+    }
 
-// Function to deserialize the signup request body
-pub fn get_signup_request_body(request: &str) -> Result<SignupData, serde_json::Error> {
-    serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
+    serde_json::from_str(body).map_err(RequestBodyError::DeserializationError)
 }
 
 // Password hash function (example)

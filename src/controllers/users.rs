@@ -1,16 +1,18 @@
 use postgres::{ Client, NoTls };
 
+use crate::models::models::SignupData;
 use crate::responses::responses::NOT_FOUND;
 use crate::responses::responses::INTERNAL_SERVER_ERROR;
 use crate::responses::responses::OK_RESPONSE;
 use crate::models::models::User;
 use crate::utils::utils::*;
+use crate::BAD_REQUEST;
 use postgres::error::SqlState;
 
 const DB_URL: &str = "postgres://postgres:postgres@db:5432/postgres";
 
 pub fn handle_post_request(request: &str) -> (String, String) {
-    match (get_user_request_body(&request), Client::connect(DB_URL, NoTls)) {
+    match (get_request_body::<User>(&request), Client::connect(DB_URL, NoTls)) {
         (Ok(user), Ok(mut client)) => {
             client
                 .execute(
@@ -72,7 +74,7 @@ pub fn handle_put_request(request: &str) -> (String, String) {
     match
         (
             get_id(&request).parse::<i32>(),
-            get_user_request_body(&request),
+            get_request_body::<User>(&request),
             Client::connect(DB_URL, NoTls),
         )
     {
@@ -108,7 +110,7 @@ pub fn handle_delete_request(request: &str) -> (String, String) {
 
 
 pub fn handle_post_signup(request: &str) -> (String, String) {
-    match get_signup_request_body(request) {
+    match get_request_body::<SignupData>(request) {
         Ok(signup_data) => {
             match Client::connect(DB_URL, NoTls) {
                 Ok(mut client) => {
@@ -124,7 +126,7 @@ pub fn handle_post_signup(request: &str) -> (String, String) {
                         Err(err) => {
                             if let Some(db_err) = err.as_db_error() {
                                 if db_err.code() == &SqlState::UNIQUE_VIOLATION {
-                                    (INTERNAL_SERVER_ERROR.to_string(), "Email already exists".to_string())
+                                    (BAD_REQUEST.to_string(), "Email already exists".to_string())
                                 } else {
                                     (INTERNAL_SERVER_ERROR.to_string(), format!("Database error: {}", db_err))
                                 }
