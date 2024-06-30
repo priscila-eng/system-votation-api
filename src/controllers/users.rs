@@ -8,8 +8,7 @@ use crate::models::models::User;
 use crate::utils::utils::*;
 use crate::BAD_REQUEST;
 use postgres::error::SqlState;
-
-const DB_URL: &str = "postgres://postgres:postgres@db:5432/postgres";
+use crate::constants::constants::DB_URL;
 
 pub fn handle_post_request(request: &str) -> (String, String) {
     match (get_request_body::<User>(&request), Client::connect(DB_URL, NoTls)) {
