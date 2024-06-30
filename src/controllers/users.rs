@@ -107,7 +107,7 @@ pub fn handle_delete_request(request: &str) -> (String, String) {
 }
 
 
-fn handle_post_signup(request: &str) -> (String, String) {
+pub fn handle_post_signup(request: &str) -> (String, String) {
     match get_signup_request_body(request) {
         Ok(signup_data) => {
             match Client::connect(DB_URL, NoTls) {

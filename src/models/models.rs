@@ -17,8 +17,8 @@ pub struct Votation {
 
 //Model: SignupData struct with name, email, password
 #[derive(Serialize, Deserialize)]
-struct SignupData {
-    name: String,
-    email: String,
-    password: String, // Add password field for signup
+pub struct SignupData {
+    pub name: String,
+    pub email: String,
+    pub password: String, // Add password field for signup
 }
