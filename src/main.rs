@@ -1,5 +1,4 @@
 mod controllers;
-mod responses;
 mod utils;
 mod models;
 mod database;
@@ -7,7 +6,6 @@ mod constants;
 
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use std::net::TcpListener;
 use database::database::set_database;
 use controllers::users::*;
 use controllers::votation::*;

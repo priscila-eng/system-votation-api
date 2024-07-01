@@ -1,5 +1,5 @@
 use actix_web::{web, HttpResponse, Responder};
-use tokio_postgres::{Client, NoTls, Error as PostgresError};
+use tokio_postgres::NoTls;
 use jsonwebtoken::{encode, Header, EncodingKey};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -145,11 +145,11 @@ pub async fn handle_auth_request(body: web::Json<AuthData>) -> impl Responder {
     let user_id: i32 = row.get(0);
 
     // Consultar o usuário
-    let user_row = match client.query_one(
-        "SELECT * FROM users WHERE id = $1",
+    match client.query_one(
+        "SELECT 1 FROM users WHERE id = $1",
         &[&user_id],
     ).await {
-        Ok(_) => return HttpResponse::Ok().body("Token valid"),
-        Err(_) => return HttpResponse::NotFound().body("Invalid token"),
-    };
+        Ok(_) => HttpResponse::Ok().body("Token valid"),
+        Err(_) => HttpResponse::NotFound().body("Invalid token"),
+    }
 }

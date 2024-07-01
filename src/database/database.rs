@@ -1,4 +1,4 @@
-use tokio_postgres::{Client, NoTls, Error as PostgresError};
+use tokio_postgres::{ NoTls, Error as PostgresError};
 use crate::constants::constants::DB_URL;
 
 pub async fn set_database() -> Result<(), PostgresError> {
