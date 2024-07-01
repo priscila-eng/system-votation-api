@@ -1,13 +1,18 @@
-use postgres::Error as PostgresError;
-use postgres::{ Client, NoTls };
+use tokio_postgres::{Client, NoTls, Error as PostgresError};
 use crate::constants::constants::DB_URL;
 
-//set_database function
-pub fn set_database() -> Result<(), PostgresError> {
-    //Connect to database
-    let mut client = Client::connect(DB_URL, NoTls)?;
+pub async fn set_database() -> Result<(), PostgresError> {
+    // Connect to the database
+    let (client, connection) = tokio_postgres::connect(DB_URL, NoTls).await?;
 
-    //Create table
+    // Spawn a new task to run the connection in the background
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("Database connection error: {:?}", e);
+        }
+    });
+
+    // Create tables
     client.batch_execute(
         "CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -17,7 +22,7 @@ pub fn set_database() -> Result<(), PostgresError> {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )"
-    )?;
+    ).await?;
 
     client.batch_execute(
         "CREATE TABLE IF NOT EXISTS sessions (
@@ -27,7 +32,7 @@ pub fn set_database() -> Result<(), PostgresError> {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )"
-    )?;
+    ).await?;
 
     Ok(())
 }

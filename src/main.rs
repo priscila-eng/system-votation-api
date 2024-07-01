@@ -6,36 +6,43 @@ mod database;
 mod constants;
 mod routes;
 
+use actix_cors::Cors;
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use std::net::TcpListener;
 use database::database::set_database;
-use routes::routes::handle_client;
-// use std::env;
-// use chrono::NaiveDate;
+use controllers::users::*;
+use controllers::votation::*;
 
 #[macro_use]
 extern crate serde_derive;
 
-//main function
-fn main() {
-    //Set database
-    if let Err(e) = set_database() {
-        println!("Error: {}", e);
-        return;
+async fn hello_world() -> impl Responder {
+    HttpResponse::Ok().body("Hello, world!")
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    // Set up the database
+    if let Err(e) = set_database().await {
+        eprintln!("Error setting up the database: {:?}", e);
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Database setup failed"));
     }
 
-    //start server and print port
-    let listener = TcpListener::bind(format!("0.0.0.0:8080")).unwrap();
-    println!("Server started at port 8080");
+    HttpServer::new(|| {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .max_age(3600);
 
-    //handle the client
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                handle_client(stream);
-            }
-            Err(e) => {
-                println!("Error: {}", e);
-            }
-        }
-    }
+        App::new()
+            .wrap(cors)
+            .route("/", web::get().to(hello_world))
+            .route("/signup", web::post().to(handle_post_signup))
+            .route("/login", web::post().to(handle_login_request))
+            .route("/token", web::post().to(handle_auth_request))
+    })
+    .bind("0.0.0.0:8080")?
+    .run()
+    .await
 }
