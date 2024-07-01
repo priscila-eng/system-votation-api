@@ -4,7 +4,6 @@ mod utils;
 mod models;
 mod database;
 mod constants;
-mod routes;
 
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -41,6 +40,7 @@ async fn main() -> std::io::Result<()> {
             .route("/signup", web::post().to(handle_post_signup))
             .route("/login", web::post().to(handle_login_request))
             .route("/token", web::post().to(handle_auth_request))
+            .route("/votation", web::post().to(handle_post_votation))
     })
     .bind("0.0.0.0:8080")?
     .run()
