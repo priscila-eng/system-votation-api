@@ -19,7 +19,7 @@ pub struct Votation {
     pub id: Option<i32>,
     pub title: String,
     pub description: String,
-    pub end_date: i64
+    pub end_date: String
 }
 
 //Model: SignupData struct with name, email, password
