@@ -2,10 +2,16 @@ use actix_web::{web, HttpResponse, Responder};
 use tokio_postgres::NoTls;
 use jsonwebtoken::{encode, Header, EncodingKey};
 use std::time::{SystemTime, UNIX_EPOCH};
+use serde::Serialize;
 
 use crate::utils::utils::{ hash_password, verify_password };
 use crate::models::models::{SignupData, Claims, LoginData, AuthData};
 use crate::constants::constants::{ DB_URL, SECRET_KEY };
+
+#[derive(Serialize)]
+struct TokenResponse {
+    token: String,
+}
 
 pub async fn handle_post_signup(body: web::Json<SignupData>) -> impl Responder {
     let signup_data = body.into_inner();
@@ -114,7 +120,7 @@ pub async fn handle_login_request(body: web::Json<LoginData>) -> impl Responder 
         return HttpResponse::InternalServerError().body(format!("Database error: {}", e));
     }
 
-    HttpResponse::Ok().body(format!("{{\"token\": \"{}\"}}", token))
+    HttpResponse::Ok().json(TokenResponse { token })
 }
 
 pub async fn handle_auth_request(body: web::Json<AuthData>) -> impl Responder {
