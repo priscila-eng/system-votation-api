@@ -1,21 +1,41 @@
-use actix_web::{web, HttpResponse, Responder};
-use crate::models::models::Votation; // Certifique-se de que `Votation` é importada
+use actix_web::{post, get, web, HttpResponse};
+use std::collections::HashSet;
 
-// Função principal para manipular a requisição POST
-pub async fn handle_post_votation(body: web::Json<Votation>) -> impl Responder {
-    let votation = body.into_inner();
+use crate::blockchain::blockchain::SharedBlockchain;
 
-    // Chama a função assíncrona para criar uma votação (QUANDO FOR IMPLEMENTAR SÓ FAZ AQUI MESMO, NÃO PRECISA FAZER NA FUNÇÃO DE TESTE)
-    let result = create_votation(&votation).await;
+#[derive(Debug, Deserialize)]
+pub struct CreateElectionPayload {
+    election_id: String,
+    vote_options: HashSet<String>,
+}
 
-    // Retorna uma resposta com base no resultado da criação da votação
-    match result {
-        Ok(_) => HttpResponse::Ok().body("Votation created"),
-        Err(_) => HttpResponse::InternalServerError().body("Error"),
+#[post("/create_election")]
+async fn handle_post_create_election(
+    blockchain: web::Data<SharedBlockchain>,
+    web::Json(payload): web::Json<CreateElectionPayload>,
+) -> HttpResponse {
+    let mut blockchain = blockchain.lock().unwrap();
+
+    match blockchain.create_election(payload.election_id.clone(), payload.vote_options.clone()) {
+        Ok(_) => HttpResponse::Ok().json("Election created successfully"),
+        Err(err) => HttpResponse::BadRequest().json(err),
     }
 }
 
-// Apenas retorna Ok para teste
-async fn create_votation(_votation: &Votation) -> Result<(), String> {
-    Ok(())
+#[get("/elections")]
+async fn handle_get_all_elections(
+    blockchain: web::Data<SharedBlockchain>,
+) -> HttpResponse {
+    let blockchain = blockchain.lock().unwrap();  // Obtenha uma referência imutável à blockchain
+
+    // Recupere as eleições da blockchain
+    let elections: Vec<String> = blockchain.elections.keys().cloned().collect();
+
+    HttpResponse::Ok().json(elections)
+}
+
+pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg
+        .service(handle_post_create_election)
+        .service(handle_get_all_elections);
 }

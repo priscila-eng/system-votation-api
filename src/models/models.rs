@@ -13,15 +13,6 @@ pub struct User {
     pub email: String,
 }
 
-//Model: Votation struct with id, title, description, end_date
-#[derive(Serialize, Deserialize)]
-pub struct Votation {
-    pub id: Option<i32>,
-    pub title: String,
-    pub description: String,
-    pub end_date: String
-}
-
 //Model: SignupData struct with name, email, password
 #[derive(Serialize, Deserialize)]
 pub struct SignupData {

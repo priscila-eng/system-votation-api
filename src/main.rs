@@ -3,12 +3,15 @@ mod utils;
 mod models;
 mod database;
 mod constants;
+mod blockchain;
 
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use std::sync::{Arc, Mutex};
 use database::database::set_database;
 use controllers::users::*;
-use controllers::votation::*;
+use controllers::votation::configure as votation_configure;
+use blockchain::blockchain::{Blockchain, SharedBlockchain};
 
 #[macro_use]
 extern crate serde_derive;
@@ -25,7 +28,9 @@ async fn main() -> std::io::Result<()> {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "Database setup failed"));
     }
 
-    HttpServer::new(|| {
+    let blockchain = Arc::new(Mutex::new(Blockchain::new()));
+
+    HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
             .allow_any_method()
@@ -33,12 +38,13 @@ async fn main() -> std::io::Result<()> {
             .max_age(3600);
 
         App::new()
+            .app_data(web::Data::new(blockchain.clone())) 
             .wrap(cors)
             .route("/", web::get().to(hello_world))
             .route("/signup", web::post().to(handle_post_signup))
             .route("/login", web::post().to(handle_login_request))
             .route("/token", web::post().to(handle_auth_request))
-            .route("/votation", web::post().to(handle_post_votation))
+            .configure(votation_configure)
     })
     .bind("0.0.0.0:8080")?
     .run()
