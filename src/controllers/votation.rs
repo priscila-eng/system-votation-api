@@ -128,6 +128,7 @@ async fn handle_get_all_elections(
 
 #[get("/election")]
 async fn handle_get_election(
+    req: HttpRequest,
     blockchain: web::Data<SharedBlockchain>,
     query: web::Query<ElectionQuery>,
 ) -> HttpResponse {
@@ -151,7 +152,12 @@ async fn handle_get_election(
 
             // Se voter_id for fornecido, recupere o voto do usuário
             if let Some(voter_id) = &query.voter_id {
-                if let Some((_, vote_option_id)) = blockchain.get_votes_by_user(voter_id, election_id) {
+                let voter_id_extract = match extract_user_id_from_token(&req) {
+                    Ok(id) => id,
+                    Err(resp) => return resp,
+                };
+                println!("Found vote id: {:?}", blockchain.get_votes_by_user(&voter_id_extract, election_id));
+                if let Some((_, vote_option_id)) = blockchain.get_votes_by_user(&voter_id_extract, election_id) {
                     // Verificar se o vote_option_id está na lista de opções de voto da eleição
                     if election.contains(&vote_option_id) {
                         response["user_vote"] = serde_json::json!(vote_option_id);
