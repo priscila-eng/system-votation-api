@@ -1,3 +1,4 @@
+use actix_web::web::service;
 use actix_web::{post, get, web, HttpResponse, HttpRequest};
 use std::collections::HashSet;
 use jsonwebtoken::{decode, Validation, DecodingKey};
@@ -22,6 +23,11 @@ pub struct VotePayload {
 struct ElectionQuery {
     election_id: Option<String>,
     voter_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ResultsQuery {
+    election_id: Option<String>
 }
 
 fn extract_user_id_from_token(req: &HttpRequest) -> Result<String, HttpResponse> {
@@ -79,6 +85,7 @@ async fn handle_post_vote(
 
 #[get("/elections")]
 async fn handle_get_all_elections(
+    req: HttpRequest,
     blockchain: web::Data<SharedBlockchain>,
     query: web::Query<ElectionQuery>,
 ) -> HttpResponse {
@@ -94,8 +101,13 @@ async fn handle_get_all_elections(
 
     let voter_id = query.voter_id.as_ref().unwrap();
 
+    let voter_id_extract = match extract_user_id_from_token(&req) {
+        Ok(id) => id,
+        Err(resp) => return resp,
+    };
+
     // Buscar todas as eleições em que o usuário participou
-    let elections = blockchain.get_elections_by_user(voter_id);
+    let elections = blockchain.get_elections_by_user(&voter_id_extract);
 
     // Inicializar vetor de respostas
     let mut responses = Vec::new();
@@ -135,6 +147,8 @@ async fn handle_get_election(
     println!("Received request to handle_get_election");
 
     let blockchain = blockchain.lock().unwrap();
+
+    // println!("elections filter: {:?}", blockchain.get_results_election(&query.election_id));
 
     // Verifique se o election_id foi fornecido na query
     if let Some(election_id) = &query.election_id {
@@ -183,10 +197,57 @@ async fn handle_get_election(
     }
 }
 
+#[get("/results")]
+async fn handle_get_results_election(
+    blockchain: web::Data<SharedBlockchain>,
+    query: web::Query<ResultsQuery>,
+) -> HttpResponse {
+
+    
+    let blockchain = blockchain.lock().unwrap();
+    
+    // Verifique se o election_id foi fornecido na query
+    if let Some(election_id) = &query.election_id {
+        println!("elections filter: {:?}", blockchain.get_results_election(election_id));
+        println!("Query parameter election_id: {:?}", election_id);
+
+        let elections = blockchain.get_results_election(election_id);
+
+        // Inicializar vetor de respostas
+        let mut responses = Vec::new();
+
+        for (election_id, vote_option_id) in elections {
+            if let Some(election) = blockchain.elections.get(&election_id) {
+                let mut response = serde_json::json!({
+                    "election_id": election_id,
+                    "vote_options": election.iter().cloned().collect::<Vec<_>>(), // Assumindo que election é um HashSet de opções de voto
+                });
+    
+                // Verificar se o vote_option_id está na lista de opções de voto da eleição
+                if election.contains(&vote_option_id) {
+                    response["user_vote"] = serde_json::json!(vote_option_id);
+                } else {
+                    response["user_vote"] = serde_json::Value::Null;
+                }
+    
+                responses.push(response);
+            } else {
+                println!("Election not found for id: {:?}", election_id);
+            }
+        }
+        // Retornar a resposta com todas as eleições que o usuário participou
+        HttpResponse::Ok().json(responses)
+    } else {
+        println!("Missing election_id query parameter");
+        HttpResponse::BadRequest().json("Missing election_id query parameter")
+    }
+}
+
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg
         .service(handle_post_create_election)
         .service(handle_post_vote)
         .service(handle_get_all_elections)
-        .service(handle_get_election);
+        .service(handle_get_election)
+        .service(handle_get_results_election);
 }
