@@ -47,9 +47,19 @@ fn extract_user_id_from_token(req: &HttpRequest) -> Result<String, HttpResponse>
 
 #[post("/create_election")]
 async fn handle_post_create_election(
+    req: HttpRequest,
     blockchain: web::Data<SharedBlockchain>,
     web::Json(payload): web::Json<CreateElectionPayload>,
 ) -> HttpResponse {
+    let _creator_id = match extract_user_id_from_token(&req) {
+        Ok(id) => id,
+        Err(resp) => return resp,
+    };
+
+    if payload.vote_options.len() > 20 {
+        return HttpResponse::BadRequest().json("Cannot create more than 20 vote options");
+    }
+
     let mut blockchain = blockchain.lock().unwrap();
 
     match blockchain.create_election(payload.election_id.clone(), payload.vote_options.clone()) {
