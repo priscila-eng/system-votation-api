@@ -64,6 +64,23 @@ impl Blockchain {
 
         Ok(())
     }
+
+    pub fn get_votes_by_user(&self, voter_id: &str, election_id: &str) -> Option<(String, String)> {
+        self.chain
+            .iter()
+            .rev()  // Itera reversamente para pegar o voto mais recente primeiro
+            .find(|block| block.voter_id == voter_id && block.election_id == election_id)
+            .map(|block| (block.election_id.clone(), block.vote_option_id.clone()))
+}
+
+    pub fn get_elections_by_user(&self, voter_id: &str) -> Vec<(String, String)> {
+        self.chain
+            .iter()
+            .filter(|block| block.voter_id == voter_id)
+            .map(|block| (block.election_id.clone(), block.vote_option_id.clone()))
+            .collect()
+}
+
 }
 
 pub type SharedBlockchain = Arc<Mutex<Blockchain>>;
