@@ -1,7 +1,9 @@
 use actix_web::web::service;
 use actix_web::{post, get, web, HttpResponse, HttpRequest};
+use sha2::digest::typenum::Integer;
 use std::collections::HashSet;
 use jsonwebtoken::{decode, Validation, DecodingKey};
+use std::collections::HashMap;
 
 use crate::blockchain::blockchain::SharedBlockchain;
 use crate::models::models::Claims;
@@ -216,26 +218,39 @@ async fn handle_get_results_election(
         // Inicializar vetor de respostas
         let mut responses = Vec::new();
 
+        let mut votes: HashMap<String, Vec<String>> = HashMap::new();
+
         for (election_id, vote_option_id) in elections {
-            if let Some(election) = blockchain.elections.get(&election_id) {
+
+            if let Some(election) = blockchain.elections.get(&election_id){
                 let mut response = serde_json::json!({
                     "election_id": election_id,
                     "vote_options": election.iter().cloned().collect::<Vec<_>>(), // Assumindo que election é um HashSet de opções de voto
                 });
-    
-                // Verificar se o vote_option_id está na lista de opções de voto da eleição
-                if election.contains(&vote_option_id) {
-                    response["user_vote"] = serde_json::json!(vote_option_id);
-                } else {
-                    response["user_vote"] = serde_json::Value::Null;
+                if !votes.contains_key(&vote_option_id) {
+                    for vote_option in election {
+                        votes.insert(String::from(vote_option), Vec::new());
+                    }
                 }
-    
-                responses.push(response);
             } else {
                 println!("Election not found for id: {:?}", election_id);
             }
+            
+           
+            println!("vote 1: {:?}", votes);
+            votes.entry(vote_option_id.clone()).or_insert(Vec::new()).push(String::from(vote_option_id));
+            println!("vote 2: {:?}", votes);
         }
         // Retornar a resposta com todas as eleições que o usuário participou
+        let mut response = serde_json::json!({
+            "election_id": election_id,
+        });
+
+        for (key, value) in &votes {
+            println!("{}: {}", key, value.len());
+            response[key] = serde_json::json!(value.len());
+        }
+        responses.push(response);
         HttpResponse::Ok().json(responses)
     } else {
         println!("Missing election_id query parameter");
