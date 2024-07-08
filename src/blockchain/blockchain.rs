@@ -71,7 +71,7 @@ impl Blockchain {
             .rev()  // Itera reversamente para pegar o voto mais recente primeiro
             .find(|block| block.voter_id == voter_id && block.election_id == election_id)
             .map(|block| (block.election_id.clone(), block.vote_option_id.clone()))
-}
+    }
 
     pub fn get_elections_by_user(&self, voter_id: &str) -> Vec<(String, String)> {
         self.chain
@@ -79,7 +79,18 @@ impl Blockchain {
             .filter(|block| block.voter_id == voter_id)
             .map(|block| (block.election_id.clone(), block.vote_option_id.clone()))
             .collect()
-}
+    
+    
+    }
+
+    pub fn get_results_election(&self, election_id: &str) -> Vec<(String, String)> {
+        self.chain
+            .iter()
+            .filter(|block| block.election_id == election_id)
+            .map(|block| (block.election_id.clone(), block.vote_option_id.clone()))
+            .collect()
+    
+    }
 
 }
 
