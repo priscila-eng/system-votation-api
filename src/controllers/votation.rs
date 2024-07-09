@@ -53,7 +53,7 @@ fn extract_user_id_from_token(req: &HttpRequest) -> Result<String, HttpResponse>
     Err(HttpResponse::Unauthorized().body("Missing or malformed Authorization header"))
 }
 
-#[post("/create_election")]
+#[post("/election")]
 async fn handle_post_create_election(
     req: HttpRequest,
     blockchain: web::Data<SharedBlockchain>,
