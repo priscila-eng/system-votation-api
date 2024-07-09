@@ -105,14 +105,6 @@ async fn handle_get_all_elections(
 
     let blockchain = blockchain.lock().unwrap();
 
-    // Se voter_id não foi fornecido, retornar BadRequest
-    if query.voter_id.is_none() {
-        println!("Missing voter_id query parameter");
-        return HttpResponse::BadRequest().json("Missing voter_id query parameter");
-    }
-
-    let voter_id = query.voter_id.as_ref().unwrap();
-
     let voter_id_extract = match extract_user_id_from_token(&req) {
         Ok(id) => id,
         Err(resp) => return resp,
