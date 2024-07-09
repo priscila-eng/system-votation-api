@@ -59,7 +59,7 @@ async fn handle_post_create_election(
     blockchain: web::Data<SharedBlockchain>,
     web::Json(payload): web::Json<CreateElectionPayload>,
 ) -> HttpResponse {
-    let _creator_id = match extract_user_id_from_token(&req) {
+    let creator_id = match extract_user_id_from_token(&req) {
         Ok(id) => id,
         Err(resp) => return resp,
     };
@@ -70,7 +70,7 @@ async fn handle_post_create_election(
 
     let mut blockchain = blockchain.lock().unwrap();
 
-    match blockchain.create_election(payload.election_id.clone(), payload.vote_options.clone()) {
+    match blockchain.create_election(payload.election_id.clone(), payload.vote_options.clone(), creator_id) {
         Ok(_) => HttpResponse::Ok().json("Election created successfully"),
         Err(err) => HttpResponse::BadRequest().json(err),
     }
@@ -130,6 +130,51 @@ async fn handle_get_all_elections(
             } else {
                 response["user_vote"] = serde_json::Value::Null;
             }
+
+            responses.push(response);
+        } else {
+            println!("Election not found for id: {:?}", election_id);
+        }
+    }
+
+    // Retornar a resposta com todas as eleições que o usuário participou
+    HttpResponse::Ok().json(responses)
+}
+
+#[get("/elections_created_by_user")]
+async fn handle_get_elections_created_by_user(
+    req: HttpRequest,
+    blockchain: web::Data<SharedBlockchain>,
+) -> HttpResponse {
+    println!("Received request to handle_get_elections_created_by_user");
+
+    let blockchain = blockchain.lock().unwrap();
+
+    let creator_id_extract = match extract_user_id_from_token(&req) {
+        Ok(id) => id,
+        Err(resp) => return resp,
+    };
+
+    // Buscar todas as eleições em que o usuário participou
+    let elections = blockchain.get_elections_created_by_user(&creator_id_extract);
+
+    // Inicializar vetor de respostas
+    let mut responses = Vec::new();
+
+    // Para cada eleição em que o usuário participou, criar a resposta correspondente
+    for (election_id) in elections {
+        if let Some(election) = blockchain.elections.get(&election_id) {
+            let mut response = serde_json::json!({
+                "election_id": election_id,
+                "vote_options": election.iter().cloned().collect::<Vec<_>>(), // Assumindo que election é um HashSet de opções de voto
+            });
+
+            // Verificar se o vote_option_id está na lista de opções de voto da eleição
+            // if election.contains(&vote_option_id) {
+            //     response["user_vote"] = serde_json::json!(vote_option_id);
+            // } else {
+            //     response["user_vote"] = serde_json::Value::Null;
+            // }
 
             responses.push(response);
         } else {
@@ -266,5 +311,6 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .service(handle_post_vote)
         .service(handle_get_all_elections)
         .service(handle_get_election)
-        .service(handle_get_results_election);
+        .service(handle_get_results_election)
+        .service(handle_get_elections_created_by_user);
 }

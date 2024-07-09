@@ -6,7 +6,8 @@ use crate::blockchain::block::Block;
 pub struct Blockchain {
     pub chain: Vec<Block>,
     pub voters: HashMap<String, HashSet<String>>,
-    pub elections: HashMap<String, HashSet<String>>,  
+    pub elections: HashMap<String, HashSet<String>>,
+    pub creators: HashMap<String, HashSet<String>>  
 }
 
 impl Blockchain {
@@ -14,7 +15,8 @@ impl Blockchain {
         let mut blockchain = Blockchain {
             chain: Vec::new(),
             voters: HashMap::new(),
-            elections: HashMap::new(),  
+            elections: HashMap::new(),
+            creators: HashMap::new(), 
         };
 
         // Criar o bloco gênesis
@@ -24,10 +26,20 @@ impl Blockchain {
         blockchain
     }
 
-    pub fn create_election(&mut self, election_id: String, vote_options: HashSet<String>) -> Result<(), String> {
+    pub fn create_election(&mut self, election_id: String, vote_options: HashSet<String>, creator_id: String) -> Result<(), String> {
         if self.elections.contains_key(&election_id) {
             return Err("Election already exists".to_string());
         }
+
+        if self.creators.contains_key(&creator_id) {
+            self.creators
+                .entry(creator_id.to_string())
+                .or_insert_with(HashSet::new)
+                .insert(election_id.to_string());
+        } else {
+            self.creators.insert(creator_id.clone(), [election_id.to_string()].iter().cloned().collect());
+        }
+
 
         self.elections.insert(election_id, vote_options);
         Ok(())
@@ -79,6 +91,14 @@ impl Blockchain {
             .filter(|block| block.voter_id == voter_id)
             .map(|block| (block.election_id.clone(), block.vote_option_id.clone()))
             .collect()
+    
+    
+    }
+
+    pub fn get_elections_created_by_user(&self, creator_id: &str) -> Vec<String> {
+        self.creators
+        .get(creator_id)
+        .map_or_else(Vec::new, |elections| elections.iter().cloned().collect())
     
     
     }
