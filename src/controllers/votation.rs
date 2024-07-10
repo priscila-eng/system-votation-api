@@ -141,7 +141,7 @@ async fn handle_get_all_elections(
     HttpResponse::Ok().json(responses)
 }
 
-#[get("/elections_created_by_user")]
+#[get("/user/created-elections")]
 async fn handle_get_elections_created_by_user(
     req: HttpRequest,
     blockchain: web::Data<SharedBlockchain>,
